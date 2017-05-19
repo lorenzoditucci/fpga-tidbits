@@ -1,6 +1,4 @@
-package fpgatidbits.axi
-
-import Chisel._
+package interfaces
 
 // Part I: Definitions for the actual data carried over AXI channels
 // in part II we will provide definitions for the actual AXI interfaces
@@ -8,48 +6,52 @@ import Chisel._
 
 // AXI channel data definitions
 
+import chisel3._
+import chisel3.util.Decoupled
+
 class AXIAddress(addrWidthBits: Int, idBits: Int) extends Bundle {
   // address for the transaction, should be burst aligned if bursts are used
-  val addr    = UInt(width = addrWidthBits)
+  val addr    = UInt(addrWidthBits.W)
   // size of data beat in bytes
   // set to UInt(log2Up((dataBits/8)-1)) for full-width bursts
-  val size    = UInt(width = 3)
+  val size    = UInt(3.W)
   // number of data beats -1 in burst: max 255 for incrementing, 15 for wrapping
-  val len     = UInt(width = 8)
+  val len     = UInt(8.W)
   // burst mode: 0 for fixed, 1 for incrementing, 2 for wrapping
-  val burst   = UInt(width = 2)
+  val burst   = UInt(2.W)
   // transaction ID for multiple outstanding requests
-  val id      = UInt(width = idBits)
+  val id      = UInt(idBits.W)
   // set to 1 for exclusive access
   val lock    = Bool()
   // cachability, set to 0010 or 0011
-  val cache   = UInt(width = 4)
+  val cache   = UInt(4.W)
   // generally ignored, set to to all zeroes
-  val prot    = UInt(width = 3)
+  val prot    = UInt(3.W)
   // not implemented, set to zeroes
-  val qos     = UInt(width = 4)
-  override def clone = { new AXIAddress(addrWidthBits, idBits).asInstanceOf[this.type] }
+  val qos     = UInt(4.W)
+
+  override def cloneType = { new AXIAddress(addrWidthBits, idBits).asInstanceOf[this.type] }
 }
 
 class AXIWriteData(dataWidthBits: Int) extends Bundle {
-  val data    = UInt(width = dataWidthBits)
-  val strb    = UInt(width = dataWidthBits/8)
+  val data    = UInt(dataWidthBits.W)
+  val strb    = UInt((dataWidthBits/8).W)
   val last    = Bool()
-  override def clone = { new AXIWriteData(dataWidthBits).asInstanceOf[this.type] }
+  override def cloneType = { new AXIWriteData(dataWidthBits).asInstanceOf[this.type] }
 }
 
 class AXIWriteResponse(idBits: Int) extends Bundle {
-  val id      = UInt(width = idBits)
-  val resp    = UInt(width = 2)
-  override def clone = { new AXIWriteResponse(idBits).asInstanceOf[this.type] }
+  val id      = UInt(idBits.W)
+  val resp    = UInt(2.W)
+  override def cloneType = { new AXIWriteResponse(idBits).asInstanceOf[this.type] }
 }
 
 class AXIReadData(dataWidthBits: Int, idBits: Int) extends Bundle {
-  val data    = UInt(width = dataWidthBits)
-  val id      = UInt(width = idBits)
+  val data    = UInt(dataWidthBits.W)
+  val id      = UInt(idBits.W)
   val last    = Bool()
-  val resp    = UInt(width = 2)
-  override def clone = { new AXIReadData(dataWidthBits, idBits).asInstanceOf[this.type] }
+  val resp    = UInt(2.W)
+  override def cloneType = { new AXIReadData(dataWidthBits, idBits).asInstanceOf[this.type] }
 }
 
 
@@ -64,93 +66,47 @@ class AXIMasterIF(addrWidthBits: Int, dataWidthBits: Int, idBits: Int) extends B
   // write data channel
   val writeData   = Decoupled(new AXIWriteData(dataWidthBits))
   // write response channel (for memory consistency)
-  val writeResp   = Decoupled(new AXIWriteResponse(idBits)).flip
+  val writeResp   = Decoupled(new AXIWriteResponse(idBits)).data.flip
 
   // read address channel
   val readAddr    = Decoupled(new AXIAddress(addrWidthBits, idBits))
   // read data channel
-  val readData    = Decoupled(new AXIReadData(dataWidthBits, idBits)).flip
+  val readData    = Decoupled(new AXIReadData(dataWidthBits, idBits)).data.flip
 
   // drive default/"harmless" values to leave no output uninitialized
   def driveDefaults() {
-    writeAddr.valid := Bool(false)
-    writeData.valid := Bool(false)
-    writeResp.ready := Bool(false)
-    readAddr.valid := Bool(false)
-    readData.ready := Bool(false)
+    writeAddr.valid := false.B
+    writeData.valid := false.B
+    writeResp.ready := false.B
+    readAddr.valid := false.B
+    readData.ready := false.B
     // write address channel
-    writeAddr.bits.addr := UInt(0)
-    writeAddr.bits.prot := UInt(0)
-    writeAddr.bits.size := UInt(0)
-    writeAddr.bits.len := UInt(0)
-    writeAddr.bits.burst := UInt(0)
-    writeAddr.bits.lock := Bool(false)
-    writeAddr.bits.cache := UInt(0)
-    writeAddr.bits.qos := UInt(0)
-    writeAddr.bits.id := UInt(0)
+    writeAddr.bits.addr := 0.U
+    writeAddr.bits.prot := 0.U
+    writeAddr.bits.size := 0.U
+    writeAddr.bits.len := 0.U
+    writeAddr.bits.burst := 0.U
+    writeAddr.bits.lock := false.B
+    writeAddr.bits.cache := 0.U
+    writeAddr.bits.qos := 0.U
+    writeAddr.bits.id := 0.U
     // write data channel
-    writeData.bits.data := UInt(0)
-    writeData.bits.strb := UInt(0)
-    writeData.bits.last := Bool(false)
+//    writeData.bits.data := 0.U
+    writeData.bits.strb := 0.U
+    writeData.bits.last := false.B
     // read address channel
-    readAddr.bits.addr := UInt(0)
-    readAddr.bits.prot := UInt(0)
-    readAddr.bits.size := UInt(0)
-    readAddr.bits.len := UInt(0)
-    readAddr.bits.burst := UInt(0)
-    readAddr.bits.lock := Bool(false)
-    readAddr.bits.cache := UInt(0)
-    readAddr.bits.qos := UInt(0)
-    readAddr.bits.id := UInt(0)
+    readAddr.bits.addr := 0.U
+    readAddr.bits.prot := 0.U
+    readAddr.bits.size := 0.U
+    readAddr.bits.len := 0.U
+    readAddr.bits.burst := 0.U
+    readAddr.bits.lock := false.B
+    readAddr.bits.cache := 0.U
+    readAddr.bits.qos := 0.U
+    readAddr.bits.id := 0.U
   }
 
-  // rename signals to be compatible with those in the Xilinx template
-  def renameSignals(ifName: String) {
-    // write address channel
-    writeAddr.bits.addr.setName(ifName + "_AWADDR")
-    writeAddr.bits.prot.setName(ifName + "_AWPROT")
-    writeAddr.bits.size.setName(ifName + "_AWSIZE")
-    writeAddr.bits.len.setName(ifName + "_AWLEN")
-    writeAddr.bits.burst.setName(ifName + "_AWBURST")
-    writeAddr.bits.lock.setName(ifName + "_AWLOCK")
-    writeAddr.bits.cache.setName(ifName + "_AWCACHE")
-    writeAddr.bits.qos.setName(ifName + "_AWQOS")
-    writeAddr.bits.id.setName(ifName + "_AWID")
-    writeAddr.valid.setName(ifName + "_AWVALID")
-    writeAddr.ready.setName(ifName + "_AWREADY")
-    // write data channel
-    writeData.bits.data.setName(ifName + "_WDATA")
-    writeData.bits.strb.setName(ifName + "_WSTRB")
-    writeData.bits.last.setName(ifName + "_WLAST")
-    writeData.valid.setName(ifName + "_WVALID")
-    writeData.ready.setName(ifName + "_WREADY")
-    // write response channel
-    writeResp.bits.resp.setName(ifName + "_BRESP")
-    writeResp.bits.id.setName(ifName + "_BID")
-    writeResp.valid.setName(ifName + "_BVALID")
-    writeResp.ready.setName(ifName + "_BREADY")
-    // read address channel
-    readAddr.bits.addr.setName(ifName + "_ARADDR")
-    readAddr.bits.prot.setName(ifName + "_ARPROT")
-    readAddr.bits.size.setName(ifName + "_ARSIZE")
-    readAddr.bits.len.setName(ifName + "_ARLEN")
-    readAddr.bits.burst.setName(ifName + "_ARBURST")
-    readAddr.bits.lock.setName(ifName + "_ARLOCK")
-    readAddr.bits.cache.setName(ifName + "_ARCACHE")
-    readAddr.bits.qos.setName(ifName + "_ARQOS")
-    readAddr.bits.id.setName(ifName + "_ARID")
-    readAddr.valid.setName(ifName + "_ARVALID")
-    readAddr.ready.setName(ifName + "_ARREADY")
-    // read data channel
-    readData.bits.id.setName(ifName + "_RID")
-    readData.bits.data.setName(ifName + "_RDATA")
-    readData.bits.resp.setName(ifName + "_RRESP")
-    readData.bits.last.setName(ifName + "_RLAST")
-    readData.valid.setName(ifName + "_RVALID")
-    readData.ready.setName(ifName + "_RREADY")
-  }
-
-  override def clone = { new AXIMasterIF(addrWidthBits, dataWidthBits, idBits).asInstanceOf[this.type] }
+  override def cloneType = { new AXIMasterIF(addrWidthBits, dataWidthBits, idBits).asInstanceOf[this.type] }
 }
 
 
@@ -159,30 +115,71 @@ class AXIMasterReadOnlyIF(addrWidthBits: Int, dataWidthBits: Int, idBits: Int) e
   // read address channel
   val readAddr    = Decoupled(new AXIAddress(addrWidthBits, idBits))
   // read data channel
-  val readData    = Decoupled(new AXIReadData(dataWidthBits, idBits)).flip
+  val readData    = Decoupled(new AXIReadData(dataWidthBits, idBits)).data.flip
 
-  // rename signals to be compatible with those in the Xilinx template
-  def renameSignals(ifName: String) {
-    // read address channel
-    readAddr.bits.addr.setName(ifName + "_ARADDR")
-    readAddr.bits.prot.setName(ifName + "_ARPROT")
-    readAddr.bits.size.setName(ifName + "_ARSIZE")
-    readAddr.bits.len.setName(ifName + "_ARLEN")
-    readAddr.bits.burst.setName(ifName + "_ARBURST")
-    readAddr.bits.lock.setName(ifName + "_ARLOCK")
-    readAddr.bits.cache.setName(ifName + "_ARCACHE")
-    readAddr.bits.qos.setName(ifName + "_ARQOS")
-    readAddr.bits.id.setName(ifName + "_ARID")
-    readAddr.valid.setName(ifName + "_ARVALID")
-    readAddr.ready.setName(ifName + "_ARREADY")
-    // read data channel
-    readData.bits.id.setName(ifName + "_RID")
-    readData.bits.data.setName(ifName + "_RDATA")
-    readData.bits.resp.setName(ifName + "_RRESP")
-    readData.bits.last.setName(ifName + "_RLAST")
-    readData.valid.setName(ifName + "_RVALID")
-    readData.ready.setName(ifName + "_RREADY")
-  }
-
-  override def clone = { new AXIMasterReadOnlyIF(addrWidthBits, dataWidthBits, idBits).asInstanceOf[this.type] }
+  override def cloneType = { new AXIMasterReadOnlyIF(addrWidthBits, dataWidthBits, idBits).asInstanceOf[this.type] }
 }
+
+object Axi_Defines {
+  val MAX_AXI_LEN = 256
+
+  val ONE_BYTE =               "h0".U(3.W)
+  val TWO_BYTES =              "h1".U(3.W)
+  val FOUR_BYTES =             "h2".U(3.W)
+  val EIGHT_BYTES =            "h3".U(3.W)
+  val SIXTEEN_BYTES =          "h4".U(3.W)
+  val THIRTY_TWO_BYTES =       "h5".U(3.W)
+  val SIXTY_FOUR_BYTES =       "h6".U(3.W)
+  val ONE_TWENTY_EIGHT_BYTES = "h7".U(3.W)
+
+  val FIXED         =  "h0".U(2.W)
+  val INCREMENTING  =  "h1".U(2.W)
+  val WRAPPING      =  "h2".U(2.W)
+  val RESERVED_1    =  "h3".U(2.W)
+
+  val NON_CACHE_NON_BUFFER              =  "h0".U(4.W)
+  val BUF_ONLY                          =  "h1".U(4.W)
+  val CACHE_DO_NOT_ALLOC                =  "h2".U(4.W)
+  val CACHE_BUF_DO_NOT_ALLOC            =  "h3".U(4.W)
+  val RESERVED_2                        =  "h4".U(4.W)
+  val RESERVED_3                        =  "h5".U(4.W)
+  val CACHE_WRITE_THROUGH_ALLOC_READS   =  "h6".U(4.W)
+  val CACHE_WRITE_BACK_ALLOC_READS      =  "h7".U(4.W)
+  val RESERVED_4                        =  "h8".U(4.W)
+  val RESERVED_5                        =  "h9".U(4.W)
+  val CACHE_WRITE_THROUGH_ALLOC_WRITES  =  "ha".U(4.W)
+  val CACHE_WRITE_BACK_ALLOC_WRITES     =  "hb".U(4.W)
+  val RESERVED_6                        =  "hc".U(4.W)
+  val RESERVED_7                        =  "hd".U(4.W)
+  val CACHE_WRITE_THROUGH_ALLOC_BOTH    =  "he".U(4.W)
+  val CACHE_WRITE_BACK_ALLOC_BOTH       =  "hf".U(4.W)
+
+  val DATA_SECURE_NORMAL            =  "h0".U(3.W)
+  val DATA_SECURE_PRIV              =  "h1".U(3.W)
+  val DATA_NONSECURE_NORMAL         =  "h2".U(3.W)
+  val DATA_NONSECURE_PRIV           =  "h3".U(3.W)
+  val INSTRUCTION_SECURE_NORMAL     =  "h4".U(3.W)
+  val INSTRUCTION_SECURE_PRIV       =  "h5".U(3.W)
+  val INSTRUCTION_NONSECURE_NORMAL  =  "h6".U(3.W)
+  val INSTRUCTION_NONSECURE_PRIV    =  "h7".U(3.W)
+
+
+  val NORMAL_ACCESS      = "h0".U(2.W)
+  val EXCLUSIVE_ACCESS   = "h1".U(2.W)
+  val LOCKED_ACCESS      = "h2".U(2.W)
+  val RESERVED_8         = "h3".U(2.W)
+
+
+  val OKAY   = "h0".U(2.W)    // Normal access okay indicates if a normal access has been successful.
+  //  Can also indicate an exclusive access failure.
+  val EXOKAY = "h1".U(2.W)    // Exclusive access okay indicates that either the read or write portion
+  //  of an exclusive access has been successful.
+  val SLVERR = "h2".U(2.W)    // Slave error is used when the access has reached the slave successfully,
+  //  but the slave wishes to return an error condition to the originating master
+  val DECERR = "h3".U(2.W)    // Decode error is generated typically by an interconnect component to indicate
+  //  that there is no slave at the transaction address.
+
+  // Settings for ARQOS[3:0] & AWQOS[3:0] from page 13-3
+  val NOT_QOS_PARTICIPANT  =   "h0".U(4.W)    // not participating in the quality of service function
+}
+

@@ -18,7 +18,7 @@ class DispatchSlaveIF() extends Bundle {
   // output for signalling instruction exceptions
   val exception   = UInt(OUTPUT, width = 16)
 
-  override def clone = { new DispatchSlaveIF().asInstanceOf[this.type] }
+  override def cloneType = { new DispatchSlaveIF().asInstanceOf[this.type] }
 }
 
 // command (request) bundle for memory read/writes
@@ -30,7 +30,7 @@ class ConveyMemRequest(rtnCtlBits: Int, addrBits: Int, dataBits: Int) extends Bu
   val cmd         = UInt(width = 3)
   val scmd        = UInt(width = 4)
 
-  override def clone = {
+  override def cloneType = {
     new ConveyMemRequest(rtnCtlBits, addrBits, dataBits).asInstanceOf[this.type] }
 }
 
@@ -41,7 +41,7 @@ class ConveyMemResponse(rtnCtlBits: Int, dataBits: Int) extends Bundle {
   val cmd         = UInt(width = 3)
   val scmd        = UInt(width = 4)
 
-  override def clone = {
+  override def cloneType = {
     new ConveyMemResponse(rtnCtlBits, dataBits).asInstanceOf[this.type] }
 }
 
@@ -54,7 +54,7 @@ class ConveyMemMasterIF(rtnCtlBits: Int) extends Bundle {
   val flushReq    = Bool(OUTPUT)
   val flushOK     = Bool(INPUT)
 
-  override def clone = {
+  override def cloneType = {
     new ConveyMemMasterIF(rtnCtlBits).asInstanceOf[this.type] }
 }
 
@@ -64,7 +64,7 @@ class ConveyPersonalityIF(numMemPorts: Int, rtnCtlBits: Int) extends Bundle {
   val csr  = new RegFileSlaveIF(16, 64)
   val mem  = Vec.fill(numMemPorts) { new ConveyMemMasterIF(rtnCtlBits) }
 
-  override def clone = {
+  override def cloneType = {
     new ConveyPersonalityIF(numMemPorts, rtnCtlBits).asInstanceOf[this.type] }
 }
 
@@ -115,45 +115,7 @@ class ConveyPersonalityVerilogIF(numMemPorts: Int, rtnctl: Int) extends Bundle {
   // misc -- IDs for each AE
   val aeid            = UInt(INPUT, 4)
 
-  override def clone = {
+  override def cloneType = {
     new ConveyPersonalityVerilogIF(numMemPorts, rtnctl).asInstanceOf[this.type] }
 
-  // rename signals to remain compatible with Verilog template
-  def renameSignals() {
-    dispInstValid.setName("disp_inst_vld")
-    dispInstData.setName("disp_inst")
-    dispRegID.setName("disp_aeg_idx")
-    dispRegRead.setName("disp_aeg_rd")
-    dispRegWrite.setName("disp_aeg_wr")
-    dispRegWrData.setName("disp_aeg_wr_data")
-    dispAegCnt.setName("disp_aeg_cnt")
-    dispException.setName("disp_exception")
-    dispIdle.setName("disp_idle")
-    dispRtnValid.setName("disp_rtn_data_vld")
-    dispRtnData.setName("disp_rtn_data")
-    dispStall.setName("disp_stall")
-    mcReqValid.setName("mc_rq_vld")
-    mcReqRtnCtl.setName("mc_rq_rtnctl")
-    mcReqData.setName("mc_rq_data")
-    mcReqAddr.setName("mc_rq_vadr")
-    mcReqSize.setName("mc_rq_size")
-    mcReqCmd.setName("mc_rq_cmd")
-    mcReqSCmd.setName("mc_rq_scmd")
-    mcReqStall.setName("mc_rq_stall")
-    mcResValid.setName("mc_rs_vld")
-    mcResCmd.setName("mc_rs_cmd")
-    mcResSCmd.setName("mc_rs_scmd")
-    mcResData.setName("mc_rs_data")
-    mcResRtnCtl.setName("mc_rs_rtnctl")
-    mcResStall.setName("mc_rs_stall")
-    mcReqFlush.setName("mc_rq_flush")
-    mcResFlushOK.setName("mc_rs_flush_cmplt")
-    csrWrValid.setName("csr_wr_vld")
-    csrRdValid.setName("csr_rd_vld")
-    csrAddr.setName("csr_address")
-    csrWrData.setName("csr_wr_data")
-    csrReadAck.setName("csr_rd_ack")
-    csrReadData.setName("csr_rd_data")
-    aeid.setName("i_aeid")
-  }
 }
