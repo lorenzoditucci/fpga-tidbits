@@ -1,18 +1,26 @@
-val chiselVersion = System.getProperty("chiselVersion", "latest.release")
+name := "fpgatidibits"
 
-val scalaVer = System.getProperty("scalaVer", "2.11.6")
+version := "0.1"
 
-lazy val fpgatidbitsSettings = Seq (
-  version := "0.1",
-  name := "fpgatidbits",
+scalaVersion := "2.11.7"
 
-  scalaVersion := scalaVer,
+parallelExecution := true
 
-  libraryDependencies ++= ( if (chiselVersion != "None" ) ("edu.berkeley.cs" %% "chisel" % chiselVersion) :: Nil; else Nil),
-
-  libraryDependencies += "com.novocode" % "junit-interface" % "0.10" % "test",
-  libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-  libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVer
+resolvers ++= Seq(
+  Resolver.sonatypeRepo("snapshots"),
+  Resolver.sonatypeRepo("releases")
 )
 
-lazy val fpgatidbits = (project in file(".")).settings(fpgatidbitsSettings: _*)
+// Provide a managed dependency on X if -DXVersion="" is supplied on the command line.
+val defaultVersions = Map(
+  "chisel3" -> "3.0-SNAPSHOT",
+  "chisel-iotesters" -> "1.1-SNAPSHOT"
+)
+
+libraryDependencies ++= (Seq("chisel3","chisel-iotesters").map {
+  dep: String => "edu.berkeley.cs" %% dep % sys.props.getOrElse(dep + "Version", defaultVersions(dep)) })
+
+libraryDependencies ++= Seq(
+  "org.scalatest" %% "scalatest" % "2.2.5",
+  "org.scalacheck" %% "scalacheck" % "1.12.4")
+
