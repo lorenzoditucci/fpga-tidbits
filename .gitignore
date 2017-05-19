@@ -21,7 +21,7 @@ project/plugins/project/
 testOutput/
 verilogOutput/
 /*.hpp
-
+.idea
 # Qt
 *.pro.user
 
